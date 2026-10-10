@@ -1,90 +1,134 @@
-# 💜 IEEE WIE - Al-Huson Student Branch
-> **مجتمع النساء في الهندسة (IEEE Women in Engineering) - كلية الحصن الجامعية**
+# 💜 IEEE WIE Al-Huson — Project Architecture & System Documentation
 
-مرحباً بك في المستودع التوثيقي الرئيسي لمشروع مجتمع **IEEE WIE Al-Huson**. تم تصميم وهندسة هذا النظام الرقمي وفق أحدث معايير الويب السحابية بهيكلية مفصولة (**Decoupled Architecture**) لضمان أقصى درجات الأمان والسرعة والاستقلالية.
+[![Platform Status](https://img.shields.io/badge/status-live%20production-success?style=for-the-badge&logo=cloudflare)](https://ieee-wie-alhuson.pages.dev)
+[![Architecture](https://img.shields.io/badge/architecture-Jamstack%20%2F%20Decoupled%20Edge-purple?style=for-the-badge)](https://github.com/ieee-alhuson-wie)
+[![Lead Developer](https://img.shields.io/badge/lead%20developer-Saleh%20Al--Salem-blue?style=for-the-badge&logo=github)](https://github.com/SalehAlSalem)
+[![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)](LICENSE)
+
+Welcome to the primary technical documentation repository for the **IEEE Women in Engineering (WIE) Student Affinity Group at Al-Huson University College (Al-Balqa Applied University)**. 
+
+This ecosystem was engineered by **[Saleh Al-Salem](https://github.com/SalehAlSalem)** using a modern, decoupled, cloud-native architecture designed to establish permanent digital independence, maximize security, and deliver sub-second response times across the globe with **zero operational infrastructure costs**.
 
 ---
 
-## 🏗️ هيكلية المشروع (Project Architecture)
+## 🏗️ System Architecture & Data Flow
 
-يتكون النظام الرقمي لـ IEEE WIE من **3 مستودعات برمجية مستقلة**:
+The platform separates read-intensive public traffic from administrative write mutations across three distinct repositories to enforce clear boundaries of concern and eliminate attack surfaces:
 
 ```mermaid
-graph TD
-    User([الزوار والطلاب]) -->|تصفح وقراءة فقط| PublicSite[1. الموقع العام: wie-public-website]
-    Admin([إدارة الفرع المعتمدة]) -->|OAuth 2.0 تسجيل دخول| AdminPortal[2. لوحة التحكم: wie-admin-portal]
-    
-    AdminPortal -->|رفع ومعالجة الصور| Cloudinary[(Cloudinary CDN)]
-    Cloudinary -.->|روابط الصور المحسنة| D1[(Cloudflare D1 Database)]
-    
-    AdminPortal -->|إضافة / تعديل / حذف| D1
-    PublicSite -->|استعلام وقراءة سريعة| D1
-    
-    Docs[3. مستودع التوثيق: wie-project-docs] -.->|شرح وهيكلية النظام| PublicSite
-    Docs -.->|شرح وهيكلية النظام| AdminPortal
+flowchart TD
+    subgraph Clients ["Public Users & Students"]
+        Visitor([Community Visitors & Students])
+        CalendarSync["Device Calendar Sync (Google & Apple via .ics)"]
+    end
+
+    subgraph Repos ["Ecosystem Repositories"]
+        PublicApp["1. wie-public-website (Public Portal)"]
+        AdminApp["2. wie-admin-portal (Restricted CMS)"]
+        DocsRepo["3. wie-project-docs (Technical Specifications)"]
+    end
+
+    subgraph CloudInfrastructure ["Cloudflare Global Edge Network"]
+        D1[("Cloudflare D1 (Serverless SQL wie-db)")]
+        KV[("Cloudflare KV (Session Cache)")]
+        CloudinaryCDN[("Cloudinary Media CDN")]
+    end
+
+    subgraph Administrators ["Authorized Branch Leadership"]
+        Executive([Verified Branch Executive])
+        GoogleSSO["Google OAuth 2.0 (Strict Email Whitelist)"]
+    end
+
+    Visitor -->|Browse, Read & Register| PublicApp
+    CalendarSync <-->|Automated Feed Query| PublicApp
+    PublicApp -->|Read-Only Queries| D1
+
+    Executive -->|Authenticate| GoogleSSO --> AdminApp
+    AdminApp -->|Session Token Verification| KV
+    AdminApp -->|Asset Uploads & Transforms| CloudinaryCDN
+    AdminApp -->|CRUD Data Mutations| D1
+
+    DocsRepo -.->|Architectural Blueprints| PublicApp
+    DocsRepo -.->|Architectural Blueprints| AdminApp
 ```
 
 ---
 
-## 📦 المستودعات الثلاثة (The 3 Repositories)
+## 📦 The 3 Ecosystem Repositories
 
-### 1. `wie-project-docs` (هذا المستودع - Public)
-- **الهدف:** توثيق شامل لبنية المشروع، أدلة النشر، والرسوم البيانية الهندسية.
-- **الجمهور:** المطورون، أعضاء الفرع، والمهتمون بالتعرف على البنية التقنية.
-
-### 2. `wie-public-website` (الموقع العام - Public Repo)
-- **الهدف:** الواجهة التفاعلية الرسمية للزوار والطلاب لعرض أنشطة وإنجازات وإحصائيات الفرع وحجز الفعاليات.
-- **التقنيات:** `Astro v5` + `React 19` + `Tailwind CSS v4` + `Cloudflare Pages`.
-- **مستوى الأمان:**
-  - قراءة فقط (**Read-Only**) لقاعدة البيانات السحابية.
-  - خالٍ تماماً من أي مفاتيح سرية أو صلاحيات كتابة.
-  - جميع نقاط الـ API داخل هذا المستودع تدعم فقط طلبات `GET`.
-
-### 3. `wie-admin-portal` (لوحة التحكم الإدارية - Private Repo)
-- **الهدف:** بوابة الإدارة الحصرية للفرع لإدارة الفعاليات، لوحة الشرف، الإنجازات، الإحصائيات، ورفع الصور.
-- **التقنيات:** `Astro` + `Auth.js (v5)` + `Google OAuth 2.0` + `Cloudinary SDK` + `Drizzle ORM`.
-- **مستوى الأمان:**
-  - مصادقة سحابية صارمة عبر **Google OAuth 2.0** مقيدة حصرياً ببريد الفرع المعتمد: `ieeealhusonwie@gmail.com`.
-  - جدار ناري سحابي (`middleware.ts`) يغلق كافة الواجهات ونقاط الـ API ضد أي طلب غير مصادق عليه.
-  - تخزين المفاتيح الحساسة في ملف `.env` المحمي ولا يتم رفعها إلى Git.
+| Repository | Visibility | Focus & Scope | Core Stack |
+| :--- | :--- | :--- | :--- |
+| **[`wie-project-docs`](https://github.com/ieee-alhuson-wie/wie-project-docs)** | `Public` | Architectural specifications, setup guides, and engineering standards. | Markdown, Mermaid |
+| **[`wie-public-website`](https://github.com/ieee-alhuson-wie/wie-public-website)** | `Private / Public` | Interactive public-facing portal for students, event discovery, and honors. | Astro 5, React 19, Tailwind CSS v4 |
+| **[`wie-admin-portal`](https://github.com/ieee-alhuson-wie/wie-admin-portal)** | `Private` | Protected headless administrative suite for executive committee members. | Astro 5, Auth.js, Google OAuth, D1 |
 
 ---
 
-## 🗄️ البنية التحتية السحابية (Cloud Infrastructure)
+## 🔐 Security Standards & Isolation Boundaries
 
-| الخدمة | الدور والوظيفة |
+1. **Strict Read/Write Boundary Separation:**
+   * `wie-public-website` holds **read-only privileges** to the underlying database (`wie-db`). It possesses zero secret keys, write credentials, or mutation APIs.
+   * All state-altering operations (Insert, Update, Delete) are strictly quarantined within the `wie-admin-portal`.
+
+2. **Dual-Layer Identity Verification:**
+   * Administrative access requires Google OAuth 2.0 authentication.
+   * Identity verification is guarded by a **Dual-Layer Whitelist**:
+     * **Layer 1 (Auth Configuration):** Token issuance is blocked for non-whitelisted Google accounts.
+     * **Layer 2 (Edge Middleware):** Real-time interceptor (`middleware.ts`) that immediately destroys cookies and redirects unverified sessions to `/signout`.
+
+3. **Zero Local Storage Overhead:**
+   * No files or binary images are persisted on local disks or git commits. Media assets are processed, optimized, and served through Cloudinary CDN.
+
+---
+
+## ☁️ Cloud Infrastructure & Services
+
+| Service | Role & Functionality |
 | :--- | :--- |
-| **Cloudflare Pages** | استضافة ونشر الموقع العام ولوحة التحكم كخدمات سحابية موزعة عالمياً (Edge). |
-| **Cloudflare D1** | قاعدة بيانات سحابية علائقية مشتركة بدون خادم (`wie-db`) تخدم كلا المشروعين. |
-| **Cloudinary** | تخزين وتوزيع ومعالجة الصور المرفوعة وتحسين أبعادها وصيغها تلقائياً. |
-| **Google Cloud OAuth** | إدارة هويات المدراء والمصادقة الموحدة ببروتوكول OAuth 2.0. |
+| **Cloudflare Pages** | Multi-region global serverless deployment with edge rendering (SSR). |
+| **Cloudflare D1** | Serverless relational SQL database engine providing ACID compliance for events and leadership records. |
+| **Cloudflare KV** | Low-latency key-value storage engine powering administrative session handling. |
+| **Cloudinary** | Responsive image delivery, automated format conversion (WebP/AVIF), and CDN caching. |
+| **Google Cloud Identity** | Enterprise OAuth 2.0 identity federation service. |
 
 ---
 
-## 🚀 دليل التشغيل المحلي (Local Development)
+## 💻 Local Development Workflow
 
-### 1. تشغيل الموقع العام (`wie-public-website`):
+### 1. Running the Public Portal (`wie-public-website`)
 ```bash
+git clone https://github.com/ieee-alhuson-wie/wie-public-website.git
 cd wie-public-website
 npm install
 npm run dev
+# Server available at http://localhost:4321
 ```
 
-### 2. تشغيل لوحة التحكم (`wie-admin-portal`):
+### 2. Running the Administrative Portal (`wie-admin-portal`)
 ```bash
+git clone https://github.com/ieee-alhuson-wie/wie-admin-portal.git
 cd wie-admin-portal
 npm install
-# تأكد من تجهيز ملف .env بناءً على .env.example
+# Configure your local environment variables in .env
 npm run dev
+# Server available at http://localhost:5173
 ```
 
 ---
 
-## 🔐 سياسة الأمان وحماية البيانات
-- **لا توجد كلمات مرور محلية:** تم التخلي عن كلمات المرور التقليدية لصالح المصادقة السحابية المشفرة عبر Google OAuth.
-- **تصفير مساحة التخزين المحلي:** لا يتم حفظ أي صور أو ملفات على الخادم؛ كافة الوسائط تُرفع مباشرة إلى Cloudinary CDN.
-- **عزل تام للصلاحيات:** الموقع العام لا يملك أي وسيلة برمجية للكتابة أو التعديل في قاعدة البيانات.
+## 👥 Authors & Leadership
+
+This project was engineered as a voluntary technical initiative dedicated to advancing the IEEE student community at Al-Huson University College:
+
+* **[Saleh Al-Salem](https://github.com/SalehAlSalem)** — Lead Software Engineer & System Architect
+  * *Conceived and engineered 100% of the full-stack codebase, cloud edge infrastructure, database architecture, authentication security, calendar synchronization pipelines, and founded the GitHub organization.*
+* **Noor Al-Zoubi** — Project Initiator & IEEE WIE Al-Huson Chair
+  * *Initiated the project vision, defined community operational requirements, consolidated records, and led user acceptance testing.*
+* **Raghad Obeidat** — Content & UI Advisor
+  * *Assisted in content auditing, copywriting, and interface design alignment.*
 
 ---
 
-> تم بناء وتطوير النظام بكل فخر لدعم رائدات الهندسة في **جامعة البلقاء التطبيقية - كلية الحصن الجامعية**. 💜
+## 📄 License
+
+Distributed under the **MIT License**. Created with excellence for **IEEE WIE Al-Huson**.
