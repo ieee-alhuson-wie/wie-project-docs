@@ -3,17 +3,19 @@
 [![Platform Status](https://img.shields.io/badge/status-live%20production-success?style=for-the-badge&logo=cloudflare)](https://ieee-wie-alhuson.pages.dev)
 [![Architecture](https://img.shields.io/badge/architecture-Jamstack%20%2F%20Decoupled%20Edge-purple?style=for-the-badge)](https://github.com/ieee-alhuson-wie)
 [![Lead Developer](https://img.shields.io/badge/lead%20developer-Saleh%20Al--Salem-blue?style=for-the-badge&logo=github)](https://github.com/SalehAlSalem)
-[![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)](LICENSE)
+[![License](https://img.shields.io/badge/source%20code-private%20%2F%20proprietary-red?style=for-the-badge)](https://github.com/SalehAlSalem)
 
 Welcome to the primary technical documentation repository for the **IEEE Women in Engineering (WIE) Student Affinity Group at Al-Huson University College (Al-Balqa Applied University)**. 
 
-This ecosystem was engineered by **[Saleh Al-Salem](https://github.com/SalehAlSalem)** using a modern, decoupled, cloud-native architecture designed to establish permanent digital independence, maximize security, and deliver sub-second response times across the globe with **zero operational infrastructure costs**.
+This platform was designed and engineered by **[Saleh Al-Salem](https://github.com/SalehAlSalem)** using a custom, closed-source, cloud-native architecture built to establish permanent digital autonomy, ensure strict data privacy, and deliver ultra-low latency worldwide with **zero monthly infrastructure costs**.
+
+> 🔒 **Notice:** All source code and system implementations across the platform's core services are **Private & Proprietary Software**. This repository exists exclusively for architectural transparency, operational documentation, and system specifications.
 
 ---
 
 ## 🏗️ System Architecture & Data Flow
 
-The platform separates read-intensive public traffic from administrative write mutations across three distinct repositories to enforce clear boundaries of concern and eliminate attack surfaces:
+The platform decouples public read traffic from administrative write mutations across dedicated private services to maximize security boundaries:
 
 ```mermaid
 flowchart TD
@@ -22,9 +24,9 @@ flowchart TD
         CalendarSync["Device Calendar Sync (Google & Apple via .ics)"]
     end
 
-    subgraph Repos ["Ecosystem Repositories"]
-        PublicApp["1. wie-public-website (Public Portal)"]
-        AdminApp["2. wie-admin-portal (Restricted CMS)"]
+    subgraph Repos ["Ecosystem Services"]
+        PublicApp["1. wie-public-website (Public Portal - Private Codebase)"]
+        AdminApp["2. wie-admin-portal (Restricted CMS - Private Codebase)"]
         DocsRepo["3. wie-project-docs (Technical Specifications)"]
     end
 
@@ -48,87 +50,70 @@ flowchart TD
     AdminApp -->|Asset Uploads & Transforms| CloudinaryCDN
     AdminApp -->|CRUD Data Mutations| D1
 
-    DocsRepo -.->|Architectural Blueprints| PublicApp
-    DocsRepo -.->|Architectural Blueprints| AdminApp
+    DocsRepo -.->|Architectural Specifications| PublicApp
+    DocsRepo -.->|Architectural Specifications| AdminApp
 ```
 
 ---
 
-## 📦 The 3 Ecosystem Repositories
+## 📦 Service Breakdown & Repository Access
 
-| Repository | Visibility | Focus & Scope | Core Stack |
+| Service / Repository | Access Level | Description | Core Stack |
 | :--- | :--- | :--- | :--- |
-| **[`wie-project-docs`](https://github.com/ieee-alhuson-wie/wie-project-docs)** | `Public` | Architectural specifications, setup guides, and engineering standards. | Markdown, Mermaid |
-| **[`wie-public-website`](https://github.com/ieee-alhuson-wie/wie-public-website)** | `Private / Public` | Interactive public-facing portal for students, event discovery, and honors. | Astro 5, React 19, Tailwind CSS v4 |
-| **[`wie-admin-portal`](https://github.com/ieee-alhuson-wie/wie-admin-portal)** | `Private` | Protected headless administrative suite for executive committee members. | Astro 5, Auth.js, Google OAuth, D1 |
+| **[`wie-project-docs`](https://github.com/ieee-alhuson-wie/wie-project-docs)** | `Public` | Architectural specifications, blueprints, and system documentation. | Markdown, Mermaid |
+| **`wie-public-website`** | `Private 🔒` | High-performance student & community portal. | Astro 5, React 19, Tailwind CSS v4 |
+| **`wie-admin-portal`** | `Private 🔒` | Headless management dashboard and secure administrative API. | Astro 5, Auth.js, Google OAuth, D1 |
 
 ---
 
 ## 🔐 Security Standards & Isolation Boundaries
 
-1. **Strict Read/Write Boundary Separation:**
-   * `wie-public-website` holds **read-only privileges** to the underlying database (`wie-db`). It possesses zero secret keys, write credentials, or mutation APIs.
-   * All state-altering operations (Insert, Update, Delete) are strictly quarantined within the `wie-admin-portal`.
+1. **Private & Protected Codebases:**
+   * The underlying source code for both the client portal and the administration suite is stored within **restricted, private repositories** to protect proprietary algorithms, schema blueprints, and internal API designs.
 
-2. **Dual-Layer Identity Verification:**
-   * Administrative access requires Google OAuth 2.0 authentication.
-   * Identity verification is guarded by a **Dual-Layer Whitelist**:
-     * **Layer 1 (Auth Configuration):** Token issuance is blocked for non-whitelisted Google accounts.
-     * **Layer 2 (Edge Middleware):** Real-time interceptor (`middleware.ts`) that immediately destroys cookies and redirects unverified sessions to `/signout`.
+2. **Strict Read/Write Privilege Separation:**
+   * The public portal operates with **read-only privileges** against the edge database (`wie-db`). It contains zero secret tokens, write permissions, or state-altering APIs.
+   * All database mutations (Create, Update, Delete) are strictly isolated within the authenticated admin portal.
 
-3. **Zero Local Storage Overhead:**
-   * No files or binary images are persisted on local disks or git commits. Media assets are processed, optimized, and served through Cloudinary CDN.
+3. **Dual-Layer Identity Verification:**
+   * Access to administrative controls is restricted to authorized branch executives via **Google OAuth 2.0**.
+   * Identity verification is guarded by a two-stage filter:
+     * **Stage 1 (Token Authorization):** Hardcoded email whitelist check during the OAuth callback.
+     * **Stage 2 (Edge Middleware):** Real-time interceptor (`middleware.ts`) that wipes cookies and terminates sessions for non-whitelisted identities immediately.
+
+4. **Zero-Trust Media & Secret Handling:**
+   * Sensitive secrets and API keys are managed exclusively via encrypted cloud environment variables.
+   * No images or static assets are persisted to server disks; all media is processed and served through Cloudinary CDN.
 
 ---
 
-## ☁️ Cloud Infrastructure & Services
+## ☁️ Cloud Infrastructure & Edge Services
 
-| Service | Role & Functionality |
+| Service | Architecture Role |
 | :--- | :--- |
 | **Cloudflare Pages** | Multi-region global serverless deployment with edge rendering (SSR). |
-| **Cloudflare D1** | Serverless relational SQL database engine providing ACID compliance for events and leadership records. |
-| **Cloudflare KV** | Low-latency key-value storage engine powering administrative session handling. |
-| **Cloudinary** | Responsive image delivery, automated format conversion (WebP/AVIF), and CDN caching. |
-| **Google Cloud Identity** | Enterprise OAuth 2.0 identity federation service. |
+| **Cloudflare D1** | Serverless relational SQL database engine providing ACID transactions for activities, metrics, and leaders. |
+| **Cloudflare KV** | Low-latency distributed key-value store for session token tracking. |
+| **Cloudinary** | Dynamic asset optimization, automatic WebP/AVIF transformations, and global media delivery. |
+| **Google Cloud Identity** | Enterprise OAuth 2.0 authentication provider. |
 
 ---
 
-## 💻 Local Development Workflow
+## 👥 Authors & System Attribution
 
-### 1. Running the Public Portal (`wie-public-website`)
-```bash
-git clone https://github.com/ieee-alhuson-wie/wie-public-website.git
-cd wie-public-website
-npm install
-npm run dev
-# Server available at http://localhost:4321
-```
-
-### 2. Running the Administrative Portal (`wie-admin-portal`)
-```bash
-git clone https://github.com/ieee-alhuson-wie/wie-admin-portal.git
-cd wie-admin-portal
-npm install
-# Configure your local environment variables in .env
-npm run dev
-# Server available at http://localhost:5173
-```
-
----
-
-## 👥 Authors & Leadership
-
-This project was engineered as a voluntary technical initiative dedicated to advancing the IEEE student community at Al-Huson University College:
+This platform was developed as a voluntary initiative to deliver an enterprise-grade digital home for the IEEE student branch:
 
 * **[Saleh Al-Salem](https://github.com/SalehAlSalem)** — Lead Software Engineer & System Architect
-  * *Conceived and engineered 100% of the full-stack codebase, cloud edge infrastructure, database architecture, authentication security, calendar synchronization pipelines, and founded the GitHub organization.*
+  * *Single-handedly designed, programmed, and deployed 100% of the proprietary full-stack codebase, cloud edge architecture, database models, security barriers, calendar synchronization systems, and founded the GitHub organization.*
 * **Noor Al-Zoubi** — Project Initiator & IEEE WIE Al-Huson Chair
-  * *Initiated the project vision, defined community operational requirements, consolidated records, and led user acceptance testing.*
+  * *Initiated the project vision, defined operational requirements, collected historical branch data, and coordinated user acceptance testing.*
 * **Raghad Obeidat** — Content & UI Advisor
-  * *Assisted in content auditing, copywriting, and interface design alignment.*
+  * *Contributed to content curation, text auditing, and provided design alignment feedback.*
 
 ---
 
-## 📄 License
+## ⚖️ Copyright & Intellectual Property
 
-Distributed under the **MIT License**. Created with excellence for **IEEE WIE Al-Huson**.
+**Copyright © 2026 Saleh Al-Salem. All Rights Reserved.**
+
+All source code, software architecture designs, custom database schemas, and proprietary implementations are the intellectual property of **Saleh Al-Salem**. The codebases are private and closed-source. Unauthorized reproduction, distribution, decompilation, or deployment of any portion of the source code without explicit written consent is strictly prohibited.
